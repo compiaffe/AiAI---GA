@@ -1,0 +1,155 @@
+%% This is the AiAI worksheet 1 task - Simple Genetic Algorithm
+%   Raphael Nagel
+%   16/Oct/2012
+clc
+clear all
+
+%% VARIABLES !!!!!EDIT HERE!!!!!
+popSize=50;
+geneLength=50;
+generations=100;
+maxCycles = 5; %how often to redo different the evolution from initiation
+
+mutationRate=1/geneLength; % we should just about have one mutation per genom
+coRate = 1;                   % how often we cross over
+tournament_size = 10;
+%
+
+twoPointCO = 0;
+
+
+%% set up thearray, etc.
+
+%struct to hold the individuals  %population=struct('g',{[]},'f',[]); backup in case the other stuff doesntwork
+
+population(1:popSize)=struct('g',{[zeros(1,geneLength)]},'f',[0]);
+offspring(1:popSize)=struct('g',{[zeros(1,geneLength)]},'f',[0]);
+parents(1:popSize)=struct('g',{[zeros(1,geneLength)]},'f',[0]);
+rescued=struct('g',{[]},'f',[]); %will just hold the single best individual from population
+
+% set up output for over time plotting
+output=struct('bestFit',zeros(generations,maxCycles),'averageFit',zeros(generations,maxCycles),'avgBest5',zeros(generations,1),'avgAvg5',zeros(generations,1)); %preload the output file for all X cycles with nulls %per evolution
+
+
+
+%% redo the whole GA to show how parameters influence the outcome
+
+
+for evoCycles = 1:maxCycles
+    
+    
+    %% initiate the GA with random genes
+    for x =1:popSize
+        for y=1:geneLength
+            population(x).g(y)=randi([0,1]);
+            population(x).f=0;
+        end
+    end
+    
+    
+    
+    %% !!!!!! START THE EVOLUTION !!!!!
+    for genCycles = 1:generations
+        
+        
+        %% calculate individual fitness by summing each genes with 1 per individual
+        
+        for x = 1:popSize
+            population(x).f = 0;
+            for y = 1:geneLength
+                if population(x).g(y)==1
+                    population(x).f = (population(x).f + 1);
+                end
+                
+            end
+        end
+        
+        %% calculate overall fitness,find and save best individual
+        
+        totPopFitness=0;
+        maxFitness = 0;
+        for x = 1:popSize
+            totPopFitness = (totPopFitness + population(x).f);
+            if population(x).f > maxFitness
+                maxFitness = population(x).f;
+                rescued(1) = population(x); %save the single surviver
+            end
+        end
+        
+        
+        %% also save in array $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
+        
+        output.bestFit(genCycles,evoCycles) = maxFitness; %the first X columns hold the max Fitnesses per each evolution cycle
+        output.averageFit(genCycles,evoCycles) = (totPopFitness / popSize); %the following columns hold the average fitness per each evolution cycle
+        
+        
+        %% find the parents
+        %Begin summing the fitnesses
+        %of the individuals in the population again until the running sum is
+        % greater than or equal to the randomly chosen number.
+        
+        %  parents = roulette_wheel_selection(population,popSize, totPopFitness);
+        parents = tournament_selection(population,popSize,tournament_size);
+        
+        %% Recombination - one point cross over
+        % offspring = one_point_CO(parents,popSize,geneLength);
+        
+        %% Recombination - two point cross over
+        offspring = two_point_CO(parents,popSize,geneLength,coRate);
+        
+        %% Recombination - uniform cross over
+        offspring = two_point_CO(parents,popSize,geneLength,coRate);
+        %% Mutation
+        for x = 1:popSize                           %for all offspring
+            for y = 1:geneLength                    %for each gene
+                z=rand(1);                      %flip a coin completely random(like drawing from Gauss distribution?)
+                if z < mutationRate                 %implements the probability
+                    if offspring(x).g(y)==1;        %flip the gene
+                        offspring(x).g(y) = 0;
+                    else
+                        offspring(x).g(y) = 1;
+                    end
+                    
+                end
+            end
+        end
+        
+        %% Survivor Selection
+        
+        
+        population = offspring; % first overwrite the whole population with offspring
+        y = randi([1,popSize]);  %select random position to overwrite with the rescued surviver
+        population(y)= rescued(1); %reinsert this fittest individual of the old population
+        
+        
+        %% print the stuff
+        %fprintf('Evolutionary cycle #%i \n',genCycles);
+        %fprintf('totPopFitness is %i \n',totPopFitness);
+        %fprintf('totParentsFitness is %i \n',totParentsFitness);
+        %fprintf('maximal Fitness in parents is %i \n',max(parents(x).f));
+        %fprintf('mean Fitness in parents is %f \n \n',(totParentsFitness / popSize));
+        
+        
+        
+    end %ends the evolution
+
+
+    %% Plot the output - not used as long as we investigate the different parameter settings
+    % plot(output(1:100,1:2),'DisplayName','cyclesOutput(1:generations,1:2)','YDataSource','output(1:100,1:2)');figure(gcf)OP
+    %hold on
+    
+end
+    cyclesOutput = zeros(generations,2);
+        output.avgBest5 = mean(output.bestFit,2);
+        output.avgAvg5 = mean(output.averageFit,2);
+%plot(cyclesOutput(1:5,1:2),'DisplayName','cyclesOutput(1:5,1:2)','YDataSource','cyclesOutput(1:5,1:2)');figure(gcf)
+hold on
+grid on
+plot(output.bestFit,'DisplayName','output.bestFit','YDataSource','output.bestFit');figure(gcf)
+plot(output.averageFit,'DisplayName','output.averageFit','YDataSource','output.averageFit');figure(gcf)
+plot(output.avgBest5,'r','LineWidth',3,'DisplayName','output.avgBest5','YDataSource','output.avgBest5');figure(gcf)
+plot(output.avgAvg5,'b','LineWidth',3,'DisplayName','output.avgAvg5','YDataSource','output.avgAvg5');figure(gcf)
+xlabel('Generations');ylabel('Fitness');
+
+
+
