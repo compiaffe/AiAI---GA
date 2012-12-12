@@ -8,7 +8,7 @@ clear all
 popSize=50;
 geneLength=50;
 generations=100;
-maxCycles = 5; %how often to redo different the evolution from initiation
+maxCycles = 2; %how often to redo different the evolution from initiation
 
 mutationRate=1/geneLength; % we should just about have one mutation per genom
 coRate = 1;                   % how often we cross over
